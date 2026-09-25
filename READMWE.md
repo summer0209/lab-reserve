@@ -2,7 +2,10 @@
 
 Spring Boot 3.4.5 + Java 17 + Spring Data JPA + MySQL。
 
-第 1 版功能：教室 CRUD、学生按日期+时间段预约、同一教室同一时段不能重复预约、查看/取消我的预约、学生/管理员登录。
+预约默认 PENDING，管理员审核后变为 APPROVED / REJECTED
+并发预约：事务 + 教室行锁 + 时间段重叠查询
+教室列表走 Redis 缓存，新增/修改/下架会清缓存
+
 
 ## 环境
 
