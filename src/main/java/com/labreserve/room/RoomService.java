@@ -1,6 +1,8 @@
 package com.labreserve.room;
 
 import com.labreserve.common.BizException;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -14,6 +16,7 @@ public class RoomService {
         this.roomRepository = roomRepository;
     }
 
+    @CacheEvict(value = "rooms", allEntries = true)
     public Room create(Room room) {
         room.setId(null);
         if (room.getStatus() == null || room.getStatus().isBlank()) {
@@ -25,6 +28,7 @@ public class RoomService {
         return roomRepository.save(room);
     }
 
+    @Cacheable(value = "rooms", key = "'all'")
     public List<Room> list() {
         return roomRepository.findAll();
     }
@@ -34,6 +38,12 @@ public class RoomService {
                 .orElseThrow(() -> new BizException("教室不存在：" + id));
     }
 
+    public Room getByIdForUpdate(Long id) {
+        return roomRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new BizException("教室不存在：" + id));
+    }
+
+    @CacheEvict(value = "rooms", allEntries = true)
     public Room update(Long id, Room incoming) {
         Room room = getById(id);
         if (roomRepository.existsByBuildingAndNameAndIdNot(
@@ -50,6 +60,7 @@ public class RoomService {
         return roomRepository.save(room);
     }
 
+    @CacheEvict(value = "rooms", allEntries = true)
     public void delete(Long id) {
         Room room = getById(id);
         room.setStatus("INACTIVE");

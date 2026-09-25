@@ -33,8 +33,23 @@ public class ReservationController {
         return reservationService.listMine(userId);
     }
 
+    @GetMapping("/pending")
+    public List<Reservation> pending() {
+        return reservationService.listPending();
+    }
+
     @PostMapping("/{id}/cancel")
     public Reservation cancel(@PathVariable Long id, @RequestParam Long userId) {
         return reservationService.cancel(userId, id);
+    }
+
+    @PostMapping("/{id}/approve")
+    public Reservation approve(@PathVariable Long id, @RequestParam Long adminId) {
+        return reservationService.approve(adminId, id);
+    }
+
+    @PostMapping("/{id}/reject")
+    public Reservation reject(@PathVariable Long id, @RequestParam Long adminId) {
+        return reservationService.reject(adminId, id);
     }
 }
