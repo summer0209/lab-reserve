@@ -120,6 +120,22 @@
         .status.REJECTED, .status.CANCELLED { background: #f3e0e0; color: var(--danger); }
         .hide { display: none !important; }
         .tabs { display: flex; gap: 8px; margin: 18px 0 0; }
+        .fold {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f1eee7;
+            color: var(--ink);
+            border: 1px solid var(--line);
+            margin: 8px 0 0;
+            text-align: left;
+        }
+        .fold:hover { background: #e8efe9; }
+        .fold .meta { color: var(--muted); font-weight: 500; font-size: 13px; }
+        .room-block { margin-top: 8px; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+        .room-block table { margin: 0; }
+        select { min-width: 120px; }
         @media (max-width: 640px) {
             h1 { font-size: 24px; }
             input { min-width: 100%; }
@@ -164,11 +180,28 @@
 
         <section class="card">
             <h3>教室列表</h3>
-            <button class="ghost tiny" onclick="loadRooms()">刷新</button>
-            <table>
-                <thead><tr><th>ID</th><th>名称</th><th>楼栋</th><th>容量</th><th>设备</th><th>状态</th></tr></thead>
-                <tbody id="roomTbody"></tbody>
-            </table>
+            <div class="row">
+                <select id="filterBuilding" onchange="renderRooms()">
+                    <option value="">全部楼栋</option>
+                </select>
+                <select id="filterZone" onchange="renderRooms()">
+                    <option value="">全部区</option>
+                    <option value="A">A区</option>
+                    <option value="B">B区</option>
+                    <option value="C">C区</option>
+                </select>
+                <select id="filterFloor" onchange="renderRooms()">
+                    <option value="">全部楼层</option>
+                    <option value="1">1层</option>
+                    <option value="2">2层</option>
+                    <option value="3">3层</option>
+                    <option value="4">4层</option>
+                    <option value="5">5层</option>
+                </select>
+                <button class="ghost tiny" onclick="loadRooms()">刷新</button>
+            </div>
+            <p class="hint" id="roomSummary">默认折叠，点楼栋或楼层再展开。</p>
+            <div id="roomGroups"></div>
         </section>
 
         <section id="addRoomBox" class="card hide">
@@ -214,7 +247,7 @@
     </div>
 </div>
 <script>
-    const API = (location.protocol === "file:" ? "http://localhost:8080" : "") + "/api";
+    const API = "http://localhost:8080/api";
     let me = null;
     let mode = "login";
 
@@ -312,11 +345,100 @@
         return `<span class="status ${status}">${status}</span>`;
     }
 
+    let allRooms = [];
+    const openGroups = new Set();
+
+    function roomZone(name) {
+        const m = String(name || "").match(/^[A-Za-z]/);
+        return m ? m[0].toUpperCase() : "";
+    }
+    function roomFloor(name) {
+        const m = String(name || "").match(/[A-Za-z](\d)/);
+        return m ? m[1] : "";
+    }
+    function groupKey(room) {
+        return room.building + "-" + (roomZone(room.name) || "?") + "-" + (roomFloor(room.name) || "?");
+    }
+
+    function toggleGroup(key) {
+        if (openGroups.has(key)) openGroups.delete(key);
+        else openGroups.add(key);
+        renderRooms();
+    }
+
+    function pickRoom(id) {
+        roomId.value = id;
+        document.getElementById("reserveDate").scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+
     async function loadRooms() {
-        const list = await req("/rooms");
-        roomTbody.innerHTML = list.map(r =>
-            `<tr><td>${r.id}</td><td>${r.name}</td><td>${r.building}</td><td>${r.capacity}</td><td>${r.equipment || ""}</td><td>${badge(r.status)}</td></tr>`
-        ).join("");
+        try {
+            const list = await req("/rooms");
+            allRooms = Array.isArray(list) ? list : [];
+            const buildings = [...new Set(allRooms.map(r => r.building).filter(Boolean))].sort();
+            const current = filterBuilding.value;
+            filterBuilding.innerHTML = `<option value="">全部楼栋</option>` +
+                buildings.map(b => `<option value="${b}">${b}</option>`).join("");
+            if (buildings.includes(current)) filterBuilding.value = current;
+            renderRooms();
+        } catch (e) {
+            roomGroups.innerHTML = `<p class="msg">加载失败：${e.message}</p>`;
+        }
+    }
+
+    function renderRooms() {
+        const building = filterBuilding.value;
+        const zone = filterZone.value;
+        const floor = filterFloor.value;
+        const filtered = allRooms.filter(r => {
+            if (building && r.building !== building) return false;
+            if (zone && roomZone(r.name) !== zone) return false;
+            if (floor && roomFloor(r.name) !== floor) return false;
+            return true;
+        });
+        roomSummary.textContent = `共 ${allRooms.length} 间，当前筛选 ${filtered.length} 间。点分组展开，点一行可填入预约教室ID。`;
+
+        const groups = {};
+        filtered.forEach(r => {
+            const key = groupKey(r);
+            if (!groups[key]) {
+                groups[key] = {
+                    key,
+                    title: `${r.building} ${roomZone(r.name) || ""}区 ${roomFloor(r.name) || "?"}层`,
+                    rooms: []
+                };
+            }
+            groups[key].rooms.push(r);
+        });
+
+        const keys = Object.keys(groups).sort();
+        if (!keys.length) {
+            roomGroups.innerHTML = `<p class="hint">没有符合筛选的教室</p>`;
+            return;
+        }
+
+        roomGroups.innerHTML = keys.map(key => {
+            const g = groups[key];
+            const open = openGroups.has(key);
+            const rows = g.rooms.map(r =>
+                `<tr onclick="pickRoom(${r.id})" style="cursor:pointer">
+                    <td>${r.id}</td><td>${r.name}</td><td>${r.capacity}</td>
+                    <td>${r.equipment || ""}</td><td>${badge(r.status)}</td>
+                </tr>`
+            ).join("");
+            return `<div class="room-block">
+                <button class="fold" onclick="toggleGroup('${key}')">
+                    <span>${open ? "▼" : "▶"} ${g.title}</span>
+                    <span class="meta">${g.rooms.length} 间</span>
+                </button>
+                <div class="${open ? "" : "hide"}">
+                    <table>
+                        <thead><tr><th>ID</th><th>名称</th><th>容量</th><th>设备</th><th>状态</th></tr></thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>
+            </div>`;
+        }).join("");
     }
 
     async function addRoom() {
