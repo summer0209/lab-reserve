@@ -1,13 +1,19 @@
 package com.labreserve.user;
 
 import com.labreserve.common.BizException;
+import com.labreserve.reservation.ReservationRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 @Service
 public class UserService {
     private final UserRepository userRepository;
-    public UserService(UserRepository userRepository) {
+    private final ReservationRepository reservationRepository;
+
+    public UserService(UserRepository userRepository,
+                       ReservationRepository reservationRepository) {
         this.userRepository = userRepository;
+        this.reservationRepository = reservationRepository;
     }
     public User register(String studentNo, String name, String password){
         if (userRepository.existsByStudentNo(studentNo)) {
@@ -31,6 +37,15 @@ public class UserService {
     public User getById(Long id) {
         return userRepository.findById(id)
                 .orElseThrow(() -> new BizException("用户不存在：" + id));
+    }
+    @Transactional
+    public void deleteMe(Long userId) {
+        User user = getById(userId);
+        if ("ADMIN".equals(user.getRole())) {
+            throw new BizException("管理员账号不能注销");
+        }
+        reservationRepository.deleteByUserId(userId);
+        userRepository.delete(user);
     }
 }
 
