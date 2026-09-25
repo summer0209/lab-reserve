@@ -128,13 +128,11 @@
             background: #f1eee7;
             color: var(--ink);
             border: 1px solid var(--line);
-            margin: 8px 0 0;
             text-align: left;
         }
         .fold:hover { background: #e8efe9; }
         .fold .meta { color: var(--muted); font-weight: 500; font-size: 13px; }
-        .room-block { margin-top: 8px; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
-        .room-block table { margin: 0; }
+        .room-panel { margin-top: 12px; }
         select { min-width: 120px; }
         @media (max-width: 640px) {
             h1 { font-size: 24px; }
@@ -179,29 +177,21 @@
         </section>
 
         <section class="card">
-            <h3>教室列表</h3>
-            <div class="row">
-                <select id="filterBuilding" onchange="renderRooms()">
-                    <option value="">全部楼栋</option>
-                </select>
-                <select id="filterZone" onchange="renderRooms()">
-                    <option value="">全部区</option>
-                    <option value="A">A区</option>
-                    <option value="B">B区</option>
-                    <option value="C">C区</option>
-                </select>
-                <select id="filterFloor" onchange="renderRooms()">
-                    <option value="">全部楼层</option>
-                    <option value="1">1层</option>
-                    <option value="2">2层</option>
-                    <option value="3">3层</option>
-                    <option value="4">4层</option>
-                    <option value="5">5层</option>
-                </select>
-                <button class="ghost tiny" onclick="loadRooms()">刷新</button>
+            <button class="fold" onclick="toggleRooms()">
+                <span id="roomFoldLabel">▶ 教室列表</span>
+                <span class="meta" id="roomCountLabel">已折叠</span>
+            </button>
+            <div id="roomPanel" class="room-panel hide">
+                <div class="row">
+                    <input id="roomSearch" placeholder="搜索楼栋 / 教室名 / ID" oninput="renderRooms()">
+                    <button class="ghost tiny" onclick="loadRooms()">刷新</button>
+                </div>
+                <p class="hint" id="roomSummary"></p>
+                <table>
+                    <thead><tr><th>ID</th><th>名称</th><th>楼栋</th><th>容量</th><th>设备</th><th>状态</th></tr></thead>
+                    <tbody id="roomTbody"></tbody>
+                </table>
             </div>
-            <p class="hint" id="roomSummary">默认折叠，点楼栋或楼层再展开。</p>
-            <div id="roomGroups"></div>
         </section>
 
         <section id="addRoomBox" class="card hide">
@@ -346,24 +336,14 @@
     }
 
     let allRooms = [];
-    const openGroups = new Set();
+    let roomsOpen = false;
 
-    function roomZone(name) {
-        const m = String(name || "").match(/^[A-Za-z]/);
-        return m ? m[0].toUpperCase() : "";
-    }
-    function roomFloor(name) {
-        const m = String(name || "").match(/[A-Za-z](\d)/);
-        return m ? m[1] : "";
-    }
-    function groupKey(room) {
-        return room.building + "-" + (roomZone(room.name) || "?") + "-" + (roomFloor(room.name) || "?");
-    }
-
-    function toggleGroup(key) {
-        if (openGroups.has(key)) openGroups.delete(key);
-        else openGroups.add(key);
-        renderRooms();
+    function toggleRooms() {
+        roomsOpen = !roomsOpen;
+        roomPanel.classList.toggle("hide", !roomsOpen);
+        roomFoldLabel.textContent = (roomsOpen ? "▼" : "▶") + " 教室列表";
+        roomCountLabel.textContent = roomsOpen ? ("共 " + allRooms.length + " 间") : "已折叠";
+        if (roomsOpen) renderRooms();
     }
 
     function pickRoom(id) {
@@ -375,70 +355,36 @@
         try {
             const list = await req("/rooms");
             allRooms = Array.isArray(list) ? list : [];
-            const buildings = [...new Set(allRooms.map(r => r.building).filter(Boolean))].sort();
-            const current = filterBuilding.value;
-            filterBuilding.innerHTML = `<option value="">全部楼栋</option>` +
-                buildings.map(b => `<option value="${b}">${b}</option>`).join("");
-            if (buildings.includes(current)) filterBuilding.value = current;
-            renderRooms();
+            roomCountLabel.textContent = roomsOpen ? ("共 " + allRooms.length + " 间") : "已折叠";
+            if (roomsOpen) renderRooms();
         } catch (e) {
-            roomGroups.innerHTML = `<p class="msg">加载失败：${e.message}</p>`;
+            roomsOpen = true;
+            roomPanel.classList.remove("hide");
+            roomFoldLabel.textContent = "▼ 教室列表";
+            roomTbody.innerHTML = `<tr><td colspan="6">加载失败：${e.message}</td></tr>`;
         }
     }
 
     function renderRooms() {
-        const building = filterBuilding.value;
-        const zone = filterZone.value;
-        const floor = filterFloor.value;
+        const q = (roomSearch.value || "").trim().toLowerCase();
         const filtered = allRooms.filter(r => {
-            if (building && r.building !== building) return false;
-            if (zone && roomZone(r.name) !== zone) return false;
-            if (floor && roomFloor(r.name) !== floor) return false;
-            return true;
+            if (!q) return true;
+            return [r.id, r.name, r.building, r.equipment, r.status]
+                .join(" ")
+                .toLowerCase()
+                .includes(q);
         });
-        roomSummary.textContent = `共 ${allRooms.length} 间，当前筛选 ${filtered.length} 间。点分组展开，点一行可填入预约教室ID。`;
-
-        const groups = {};
-        filtered.forEach(r => {
-            const key = groupKey(r);
-            if (!groups[key]) {
-                groups[key] = {
-                    key,
-                    title: `${r.building} ${roomZone(r.name) || ""}区 ${roomFloor(r.name) || "?"}层`,
-                    rooms: []
-                };
-            }
-            groups[key].rooms.push(r);
-        });
-
-        const keys = Object.keys(groups).sort();
-        if (!keys.length) {
-            roomGroups.innerHTML = `<p class="hint">没有符合筛选的教室</p>`;
+        roomSummary.textContent = q ? ("找到 " + filtered.length + " 间") : "";
+        if (!filtered.length) {
+            roomTbody.innerHTML = `<tr><td colspan="6">没有匹配的教室</td></tr>`;
             return;
         }
-
-        roomGroups.innerHTML = keys.map(key => {
-            const g = groups[key];
-            const open = openGroups.has(key);
-            const rows = g.rooms.map(r =>
-                `<tr onclick="pickRoom(${r.id})" style="cursor:pointer">
-                    <td>${r.id}</td><td>${r.name}</td><td>${r.capacity}</td>
-                    <td>${r.equipment || ""}</td><td>${badge(r.status)}</td>
-                </tr>`
-            ).join("");
-            return `<div class="room-block">
-                <button class="fold" onclick="toggleGroup('${key}')">
-                    <span>${open ? "▼" : "▶"} ${g.title}</span>
-                    <span class="meta">${g.rooms.length} 间</span>
-                </button>
-                <div class="${open ? "" : "hide"}">
-                    <table>
-                        <thead><tr><th>ID</th><th>名称</th><th>容量</th><th>设备</th><th>状态</th></tr></thead>
-                        <tbody>${rows}</tbody>
-                    </table>
-                </div>
-            </div>`;
-        }).join("");
+        roomTbody.innerHTML = filtered.map(r =>
+            `<tr onclick="pickRoom(${r.id})" style="cursor:pointer">
+                <td>${r.id}</td><td>${r.name}</td><td>${r.building}</td>
+                <td>${r.capacity}</td><td>${r.equipment || ""}</td><td>${badge(r.status)}</td>
+            </tr>`
+        ).join("");
     }
 
     async function addRoom() {
