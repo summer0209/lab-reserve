@@ -45,7 +45,7 @@
 
 只需安装 Docker Desktop。不需要本机单独安装 MySQL、Redis、JDK。
 
-    git clone <仓库地址>
+    git clone https://github.com/summer0209/lab-reserve
     cd lab-reserve
     docker compose up --build
 
@@ -126,13 +126,3 @@ http://localhost:8080
     src/main/resources/static/index.html
     docker-compose.yml
     Dockerfile
-
----
-
-## 现状
-
-当前版本面向本地演示：
-
-- 密码明文存储
-- 无 Session / JWT，接口使用请求中的 `userId`、`adminId` 识别身份
-- 并发场景以手工验证为主
