@@ -2,169 +2,475 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>教室预约</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>教室预约系统</title>
     <style>
-        body { font-family: sans-serif; max-width: 900px; margin: 24px auto; }
-        input, button, select { margin: 4px 0; padding: 6px; }
-        section { border: 1px solid #ddd; padding: 12px; margin: 12px 0; }
+        :root {
+            --bg: #eef2ee;
+            --paper: #f7f4ee;
+            --ink: #1c2420;
+            --muted: #5d6b64;
+            --line: #d5ddd6;
+            --accent: #2f6f5e;
+            --accent-dark: #245847;
+            --danger: #9b3d3d;
+            --warn: #8a6a28;
+            --ok: #2f6f5e;
+            --shadow: 0 18px 40px rgba(28, 36, 32, 0.08);
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            color: var(--ink);
+            font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background:
+                radial-gradient(circle at top left, rgba(47, 111, 94, 0.12), transparent 28%),
+                linear-gradient(180deg, #f3f6f3 0%, var(--bg) 100%);
+            min-height: 100vh;
+        }
+        .wrap { max-width: 1080px; margin: 0 auto; padding: 28px 20px 48px; }
+        header.appbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .brand-kicker {
+            margin: 0 0 6px;
+            color: var(--accent-dark);
+            letter-spacing: 0.16em;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        h1 { margin: 0; font-size: 30px; letter-spacing: 0.02em; }
+        .sub { margin: 8px 0 0; color: var(--muted); font-size: 14px; }
+        .card {
+            background: rgba(247, 244, 238, 0.92);
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            box-shadow: var(--shadow);
+            padding: 20px;
+        }
+        .login-shell {
+            min-height: calc(100vh - 80px);
+            display: grid;
+            place-items: center;
+        }
+        .login-card { width: min(440px, 100%); padding: 28px; }
+        .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+        input, button, select {
+            font: inherit;
+            border-radius: 10px;
+            border: 1px solid #c9d3cc;
+            padding: 9px 12px;
+            background: #fff;
+            color: var(--ink);
+        }
+        input { min-width: 140px; flex: 1; }
+        input:focus, button:focus {
+            outline: 2px solid rgba(47, 111, 94, 0.35);
+            outline-offset: 1px;
+        }
+        button {
+            border: 0;
+            background: var(--accent);
+            color: #fff;
+            cursor: pointer;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        button:hover { background: var(--accent-dark); }
+        button.ghost {
+            background: #fff;
+            color: var(--ink);
+            border: 1px solid var(--line);
+        }
+        button.ghost:hover { background: #eef3ef; }
+        button.danger { background: var(--danger); }
+        button.danger:hover { background: #7f2f2f; }
+        button.tiny { padding: 6px 10px; font-size: 13px; }
+        h3 { margin: 0 0 14px; font-size: 18px; }
+        section.card { margin: 16px 0; }
+        .userbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .who { color: var(--muted); }
+        .who b { color: var(--ink); }
+        .msg { min-height: 1.4em; margin: 10px 0 0; color: var(--danger); font-size: 14px; }
+        .hint { margin: 10px 0 0; color: var(--muted); font-size: 13px; }
         table { width: 100%; border-collapse: collapse; }
-        td, th { border: 1px solid #eee; padding: 6px; text-align: left; }
-        .hide { display: none; }
+        th, td { padding: 10px 8px; text-align: left; border-bottom: 1px solid #e4ebe5; font-size: 14px; }
+        th { color: var(--muted); font-weight: 600; font-size: 13px; }
+        tr:hover td { background: rgba(47, 111, 94, 0.04); }
+        .status {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            background: #e7eee9;
+        }
+        .status.PENDING { background: #f3ead0; color: var(--warn); }
+        .status.APPROVED { background: #dceee6; color: var(--ok); }
+        .status.REJECTED, .status.CANCELLED { background: #f3e0e0; color: var(--danger); }
+        .hide { display: none !important; }
+        .tabs { display: flex; gap: 8px; margin: 18px 0 0; }
+        .fold {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f1eee7;
+            color: var(--ink);
+            border: 1px solid var(--line);
+            text-align: left;
+        }
+        .fold:hover { background: #e8efe9; }
+        .fold .meta { color: var(--muted); font-weight: 500; font-size: 13px; }
+        .room-panel { margin-top: 12px; }
+        select { min-width: 120px; }
+        @media (max-width: 640px) {
+            h1 { font-size: 24px; }
+            input { min-width: 100%; }
+        }
     </style>
 </head>
 <body>
-<h2>教室预约系统</h2>
-<section id="loginBox">
-    <h3>登录</h3>
-    <input id="studentNo" placeholder="学号 / admin">
-    <input id="password" type="password" placeholder="密码">
-    <button onclick="login()">登录</button>
-    <p id="loginMsg"></p>
-</section>
-<div id="app" class="hide">
-    <p>当前用户：<span id="who"></span> <button onclick="logout()">退出</button></p>
-    <section>
-        <h3>教室列表</h3>
-        <button onclick="loadRooms()">刷新</button>
-        <table>
-            <thead><tr><th>ID</th><th>名称</th><th>楼栋</th><th>容量</th><th>设备</th><th>状态</th></tr></thead>
-            <tbody id="roomTbody"></tbody>
-        </table>
+<div class="wrap">
+    <header class="appbar">
+        <div>
+            <p class="brand-kicker">LAB RESERVE</p>
+            <h1>教室预约系统</h1>
+            <p class="sub">按日期和时段预约教室，管理员审核后生效</p>
+        </div>
+    </header>
+
+    <section id="loginBox" class="card login-card" style="margin: 40px auto; width: min(460px, 100%);">
+        <h3 id="authTitle">登录</h3>
+        <div class="row">
+            <input id="studentNo" placeholder="学号 / admin">
+            <input id="password" type="password" placeholder="密码">
+        </div>
+        <div id="registerExtra" class="row hide" style="margin-top: 10px;">
+            <input id="name" placeholder="姓名">
+        </div>
+        <div class="row" style="margin-top: 12px;">
+            <button id="authBtn" onclick="submitAuth()">登录</button>
+            <button class="ghost" onclick="toggleAuth()">切换注册</button>
+        </div>
+        <p class="hint">管理员演示账号：admin / admin123</p>
+        <p id="loginMsg" class="msg"></p>
     </section>
-    <section id="addRoomBox" class="hide">
-        <h3>新增教室</h3>
-        <input id="newName" placeholder="名称，如 A102">
-        <input id="newBuilding" placeholder="楼栋">
-        <input id="newCapacity" placeholder="容量" type="number">
-        <input id="newEquipment" placeholder="设备">
-        <button onclick="addRoom()">新增</button>
-    </section>
-    <section>
-        <h3>预约教室</h3>
-        <input id="roomId" placeholder="教室ID">
-        <input id="reserveDate" type="date">
-        <input id="startTime" type="time" value="08:00">
-        <input id="endTime" type="time" value="10:00">
-        <input id="purpose" placeholder="用途">
-        <button onclick="book()">提交预约</button>
-    </section>
-    <section>
-        <h3>我的预约</h3>
-        <button onclick="loadMine()">刷新</button>
-        <table>
-            <thead><tr><th>ID</th><th>教室</th><th>日期</th><th>时段</th><th>状态</th><th>操作</th></tr></thead>
-            <tbody id="mineTbody"></tbody>
-        </table>
-    </section>
-    <section id="adminBox" class="hide">
-        <h3>管理员审核</h3>
-        <button onclick="loadPending()">刷新待审核</button>
-        <table>
-            <thead><tr><th>ID</th><th>学生</th><th>教室</th><th>日期</th><th>时段</th><th>操作</th></tr></thead>
-            <tbody id="pendingTbody"></tbody>
-        </table>
-    </section>
+
+    <div id="app" class="hide">
+        <section class="card userbar">
+            <div class="who">当前用户：<b id="who"></b></div>
+            <div class="row">
+                <button class="ghost" onclick="logout()">退出登录</button>
+                <button id="deleteBtn" class="danger" onclick="deleteAccount()">注销账号</button>
+            </div>
+        </section>
+
+        <section class="card">
+            <button class="fold" onclick="toggleRooms()">
+                <span id="roomFoldLabel">▶ 教室列表</span>
+                <span class="meta" id="roomCountLabel">已折叠</span>
+            </button>
+            <div id="roomPanel" class="room-panel hide">
+                <div class="row">
+                    <input id="roomSearch" placeholder="搜索楼栋 / 教室名 / ID" oninput="renderRooms()">
+                    <button class="ghost tiny" onclick="loadRooms()">刷新</button>
+                </div>
+                <p class="hint" id="roomSummary"></p>
+                <table>
+                    <thead><tr><th>ID</th><th>名称</th><th>楼栋</th><th>容量</th><th>设备</th><th>状态</th></tr></thead>
+                    <tbody id="roomTbody"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="addRoomBox" class="card hide">
+            <h3>新增教室</h3>
+            <div class="row">
+                <input id="newName" placeholder="名称，如 A102">
+                <input id="newBuilding" placeholder="楼栋">
+                <input id="newCapacity" placeholder="容量" type="number">
+                <input id="newEquipment" placeholder="设备">
+                <button onclick="addRoom()">新增</button>
+            </div>
+        </section>
+
+        <section class="card">
+            <h3>预约教室</h3>
+            <div class="row">
+                <input id="roomId" placeholder="教室ID">
+                <input id="reserveDate" type="date">
+                <input id="startTime" type="time" value="08:00">
+                <input id="endTime" type="time" value="10:00">
+                <input id="purpose" placeholder="用途">
+                <button onclick="book()">提交预约</button>
+            </div>
+        </section>
+
+        <section class="card">
+            <h3>我的预约</h3>
+            <button class="ghost tiny" onclick="loadMine()">刷新</button>
+            <table>
+                <thead><tr><th>ID</th><th>教室</th><th>日期</th><th>时段</th><th>状态</th><th>操作</th></tr></thead>
+                <tbody id="mineTbody"></tbody>
+            </table>
+        </section>
+
+        <section id="adminBox" class="card hide">
+            <h3>管理员审核</h3>
+            <button class="ghost tiny" onclick="loadPending()">刷新待审核</button>
+            <table>
+                <thead><tr><th>ID</th><th>学生</th><th>教室</th><th>日期</th><th>时段</th><th>操作</th></tr></thead>
+                <tbody id="pendingTbody"></tbody>
+            </table>
+        </section>
+    </div>
 </div>
 <script>
     const API = "http://localhost:8080/api";
     let me = null;
+    let mode = "login";
+
     async function req(url, opt) {
-      const res = await fetch(API + url, Object.assign({
-        headers: { "Content-Type": "application/json" }
-      }, opt));
-      const text = await res.text();
-      let data = null;
-      try { data = text ? JSON.parse(text) : null; } catch (e) { data = { message: text }; }
-      if (!res.ok) throw new Error((data && data.message) || res.status);
-      return data;
+        const res = await fetch(API + url, Object.assign({
+            headers: { "Content-Type": "application/json" }
+        }, opt));
+        const text = await res.text();
+        let data = null;
+        try { data = text ? JSON.parse(text) : null; } catch (e) { data = { message: text }; }
+        if (!res.ok) throw new Error((data && data.message) || ("请求失败 " + res.status));
+        return data;
     }
-    async function login() {
-      try {
-        me = await req("/auth/login", {
-          method: "POST",
-          body: JSON.stringify({ studentNo: studentNo.value, password: password.value })
-        });
-        localStorage.setItem("me", JSON.stringify(me));
-        showApp();
-      } catch (e) { loginMsg.textContent = e.message; }
+
+    function toggleAuth() {
+        mode = mode === "login" ? "register" : "login";
+        authTitle.textContent = mode === "login" ? "登录" : "注册";
+        authBtn.textContent = mode === "login" ? "登录" : "注册";
+        registerExtra.classList.toggle("hide", mode === "login");
+        loginMsg.textContent = "";
     }
-    function logout() { me = null; localStorage.removeItem("me"); location.reload(); }
+
+    async function submitAuth() {
+        loginMsg.textContent = "";
+        try {
+            if (mode === "register") {
+                await req("/auth/register", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        studentNo: studentNo.value.trim(),
+                        name: name.value.trim(),
+                        password: password.value
+                    })
+                });
+                mode = "login";
+                authTitle.textContent = "登录";
+                authBtn.textContent = "登录";
+                registerExtra.classList.add("hide");
+                loginMsg.style.color = "var(--ok)";
+                loginMsg.textContent = "注册成功，请登录";
+                return;
+            }
+            me = await req("/auth/login", {
+                method: "POST",
+                body: JSON.stringify({
+                    studentNo: studentNo.value.trim(),
+                    password: password.value
+                })
+            });
+            localStorage.setItem("me", JSON.stringify(me));
+            showApp();
+        } catch (e) {
+            loginMsg.style.color = "var(--danger)";
+            loginMsg.textContent = e.message;
+        }
+    }
+
+    function logout() {
+        me = null;
+        localStorage.removeItem("me");
+        location.reload();
+    }
+
+    async function deleteAccount() {
+        if (!me) return;
+        if (me.role === "ADMIN") {
+            alert("管理员账号不能注销");
+            return;
+        }
+        if (!confirm("确定注销账号？你的预约记录会一并删除，且无法恢复。")) return;
+        try {
+            await req("/auth/me?userId=" + me.id, { method: "DELETE" });
+            alert("账号已注销");
+            logout();
+        } catch (e) {
+            alert(e.message);
+        }
+    }
+
     function showApp() {
-      loginBox.classList.add("hide");
-      app.classList.remove("hide");
-      who.textContent = me.name + " (" + me.role + ", id=" + me.id + ")";
-      if (me.role === "ADMIN") {
-        adminBox.classList.remove("hide");
-        addRoomBox.classList.remove("hide");
-        loadPending();
-      }
-      loadRooms();
-      loadMine();
-    }
-    async function loadRooms() {
-      const list = await req("/rooms");
-      roomTbody.innerHTML = list.map(r =>
-        `<tr><td>${r.id}</td><td>${r.name}</td><td>${r.building}</td><td>${r.capacity}</td><td>${r.equipment || ""}</td><td>${r.status}</td></tr>`
-      ).join("");
-    }
-    async function addRoom() {
-      try {
-        await req("/rooms", {
-          method: "POST",
-          body: JSON.stringify({
-            name: newName.value,
-            building: newBuilding.value,
-            capacity: Number(newCapacity.value),
-            equipment: newEquipment.value
-          })
-        });
+        loginBox.classList.add("hide");
+        app.classList.remove("hide");
+        who.textContent = me.name + "（" + me.role + "，id=" + me.id + "）";
+        deleteBtn.classList.toggle("hide", me.role === "ADMIN");
+        if (me.role === "ADMIN") {
+            adminBox.classList.remove("hide");
+            addRoomBox.classList.remove("hide");
+            loadPending();
+        }
         loadRooms();
-      } catch (e) { alert(e.message); }
+        loadMine();
     }
-    async function book() {
-      try {
-        const r = await req("/reservations", {
-          method: "POST",
-          body: JSON.stringify({
-            userId: String(me.id),
-            roomId: roomId.value,
-            reserveDate: reserveDate.value,
-            startTime: startTime.value,
-            endTime: endTime.value,
-            purpose: purpose.value
-          })
+
+    function badge(status) {
+        return `<span class="status ${status}">${status}</span>`;
+    }
+
+    let allRooms = [];
+    let roomsOpen = false;
+
+    function toggleRooms() {
+        roomsOpen = !roomsOpen;
+        roomPanel.classList.toggle("hide", !roomsOpen);
+        roomFoldLabel.textContent = (roomsOpen ? "▼" : "▶") + " 教室列表";
+        roomCountLabel.textContent = roomsOpen ? ("共 " + allRooms.length + " 间") : "已折叠";
+        if (roomsOpen) renderRooms();
+    }
+
+    function pickRoom(id) {
+        roomId.value = id;
+        document.getElementById("reserveDate").scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+
+    async function loadRooms() {
+        try {
+            const list = await req("/rooms");
+            allRooms = Array.isArray(list) ? list : [];
+            roomCountLabel.textContent = roomsOpen ? ("共 " + allRooms.length + " 间") : "已折叠";
+            if (roomsOpen) renderRooms();
+        } catch (e) {
+            roomsOpen = true;
+            roomPanel.classList.remove("hide");
+            roomFoldLabel.textContent = "▼ 教室列表";
+            roomTbody.innerHTML = `<tr><td colspan="6">加载失败：${e.message}</td></tr>`;
+        }
+    }
+
+    function renderRooms() {
+        const q = (roomSearch.value || "").trim().toLowerCase();
+        const filtered = allRooms.filter(r => {
+            if (!q) return true;
+            return [r.id, r.name, r.building, r.equipment, r.status]
+                .join(" ")
+                .toLowerCase()
+                .includes(q);
         });
-        alert("提交成功，状态：" + r.status);
-        loadMine();
-      } catch (e) { alert(e.message); }
+        roomSummary.textContent = q ? ("找到 " + filtered.length + " 间") : "";
+        if (!filtered.length) {
+            roomTbody.innerHTML = `<tr><td colspan="6">没有匹配的教室</td></tr>`;
+            return;
+        }
+        roomTbody.innerHTML = filtered.map(r =>
+            `<tr onclick="pickRoom(${r.id})" style="cursor:pointer">
+                <td>${r.id}</td><td>${r.name}</td><td>${r.building}</td>
+                <td>${r.capacity}</td><td>${r.equipment || ""}</td><td>${badge(r.status)}</td>
+            </tr>`
+        ).join("");
     }
+
+    async function addRoom() {
+        try {
+            await req("/rooms", {
+                method: "POST",
+                body: JSON.stringify({
+                    name: newName.value,
+                    building: newBuilding.value,
+                    capacity: Number(newCapacity.value),
+                    equipment: newEquipment.value
+                })
+            });
+            loadRooms();
+        } catch (e) { alert(e.message); }
+    }
+
+    async function book() {
+        try {
+            const r = await req("/reservations", {
+                method: "POST",
+                body: JSON.stringify({
+                    userId: String(me.id),
+                    roomId: roomId.value,
+                    reserveDate: reserveDate.value,
+                    startTime: startTime.value.length === 5 ? startTime.value + ":00" : startTime.value,
+                    endTime: endTime.value.length === 5 ? endTime.value + ":00" : endTime.value,
+                    purpose: purpose.value
+                })
+            });
+            alert("提交成功，状态：" + r.status);
+            loadMine();
+        } catch (e) { alert(e.message); }
+    }
+
     async function loadMine() {
-      const list = await req("/reservations/me?userId=" + me.id);
-      mineTbody.innerHTML = list.map(r =>
-        `<tr><td>${r.id}</td><td>${r.room.name}</td><td>${r.reserveDate}</td><td>${r.startTime}-${r.endTime}</td><td>${r.status}</td><td>${r.status !== "CANCELLED" && r.status !== "REJECTED" ? `<button onclick="cancel(${r.id})">取消</button>` : ""}</td></tr>`
-      ).join("");
+        const list = await req("/reservations/me?userId=" + me.id);
+        mineTbody.innerHTML = list.map(r =>
+            `<tr>
+                <td>${r.id}</td>
+                <td>${r.room.name}</td>
+                <td>${r.reserveDate}</td>
+                <td>${r.startTime}-${r.endTime}</td>
+                <td>${badge(r.status)}</td>
+                <td>${r.status !== "CANCELLED" && r.status !== "REJECTED" ? `<button class="tiny ghost" onclick="cancel(${r.id})">取消</button>` : ""}</td>
+            </tr>`
+        ).join("");
     }
+
     async function cancel(id) {
-      try {
-        await req("/reservations/" + id + "/cancel?userId=" + me.id, { method: "POST" });
-        loadMine();
-      } catch (e) { alert(e.message); }
+        try {
+            await req("/reservations/" + id + "/cancel?userId=" + me.id, { method: "POST" });
+            loadMine();
+        } catch (e) { alert(e.message); }
     }
+
     async function loadPending() {
-      const list = await req("/reservations/pending");
-      pendingTbody.innerHTML = list.map(r =>
-        `<tr><td>${r.id}</td><td>${r.user.name}</td><td>${r.room.name}</td><td>${r.reserveDate}</td><td>${r.startTime}-${r.endTime}</td><td><button onclick="review(${r.id},'approve')">通过</button> <button onclick="review(${r.id},'reject')">拒绝</button></td></tr>`
-      ).join("");
+        const list = await req("/reservations/pending");
+        pendingTbody.innerHTML = list.map(r =>
+            `<tr>
+                <td>${r.id}</td>
+                <td>${r.user.name}</td>
+                <td>${r.room.name}</td>
+                <td>${r.reserveDate}</td>
+                <td>${r.startTime}-${r.endTime}</td>
+                <td>
+                    <button class="tiny" onclick="review(${r.id},'approve')">通过</button>
+                    <button class="tiny danger" onclick="review(${r.id},'reject')">拒绝</button>
+                </td>
+            </tr>`
+        ).join("");
     }
+
     async function review(id, action) {
-      try {
-        await req("/reservations/" + id + "/" + action + "?adminId=" + me.id, { method: "POST" });
-        loadPending();
-        loadMine();
-      } catch (e) { alert(e.message); }
+        try {
+            await req("/reservations/" + id + "/" + action + "?adminId=" + me.id, { method: "POST" });
+            loadPending();
+            loadMine();
+        } catch (e) { alert(e.message); }
     }
+
     const saved = localStorage.getItem("me");
-    if (saved) { me = JSON.parse(saved); showApp(); }
+    if (saved) {
+        me = JSON.parse(saved);
+        showApp();
+    }
 </script>
 </body>
 </html>
