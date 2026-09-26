@@ -157,7 +157,7 @@
             <input id="password" type="password" placeholder="密码">
         </div>
         <div id="registerExtra" class="row hide" style="margin-top: 10px;">
-            <input id="name" placeholder="姓名">
+            <input id="realName" placeholder="姓名">
         </div>
         <div class="row" style="margin-top: 12px;">
             <button id="authBtn" onclick="submitAuth()">登录</button>
@@ -268,7 +268,7 @@
                     method: "POST",
                     body: JSON.stringify({
                         studentNo: studentNo.value.trim(),
-                        name: name.value.trim(),
+                        name: realName.value.trim(),
                         password: password.value
                     })
                 });
