@@ -242,15 +242,17 @@
     let mode = "login";
 
     async function req(url, opt) {
-        const res = await fetch(API + url, Object.assign({
-            headers: { "Content-Type": "application/json" }
-        }, opt));
-        const text = await res.text();
-        let data = null;
-        try { data = text ? JSON.parse(text) : null; } catch (e) { data = { message: text }; }
-        if (!res.ok) throw new Error((data && data.message) || ("请求失败 " + res.status));
-        return data;
-    }
+    const res = await fetch(API + url, Object.assign({
+        credentials: "include",
+        headers: { "Content-Type": "application/json" }
+    }, opt));
+    const text = await res.text();
+    let data = null;
+    try { data = text ? JSON.parse(text) : null; } catch (e) { data = { message: text }; }
+    if (!res.ok) throw new Error((data && data.message) || ("请求失败 " + res.status));
+    return data;
+}
+
 
     function toggleAuth() {
         mode = mode === "login" ? "register" : "login";
@@ -295,11 +297,13 @@
         }
     }
 
-    function logout() {
-        me = null;
-        localStorage.removeItem("me");
-        location.reload();
-    }
+    async function logout() {
+    try { await req("/auth/logout", { method: "POST" }); } catch (e) {}
+    me = null;
+    localStorage.removeItem("me");
+    location.reload();
+}
+
 
     async function deleteAccount() {
         if (!me) return;
@@ -309,7 +313,7 @@
         }
         if (!confirm("确定注销账号？你的预约记录会一并删除，且无法恢复。")) return;
         try {
-            await req("/auth/me?userId=" + me.id, { method: "DELETE" });
+            await req("/auth/me", { method: "DELETE" });
             alert("账号已注销");
             logout();
         } catch (e) {
@@ -407,7 +411,6 @@
             const r = await req("/reservations", {
                 method: "POST",
                 body: JSON.stringify({
-                    userId: String(me.id),
                     roomId: roomId.value,
                     reserveDate: reserveDate.value,
                     startTime: startTime.value.length === 5 ? startTime.value + ":00" : startTime.value,
@@ -421,7 +424,7 @@
     }
 
     async function loadMine() {
-        const list = await req("/reservations/me?userId=" + me.id);
+        const list = await req("/reservations/me");
         mineTbody.innerHTML = list.map(r =>
             `<tr>
                 <td>${r.id}</td>
@@ -436,7 +439,7 @@
 
     async function cancel(id) {
         try {
-            await req("/reservations/" + id + "/cancel?userId=" + me.id, { method: "POST" });
+            await req("/reservations/" + id + "/cancel", { method: "POST" });
             loadMine();
         } catch (e) { alert(e.message); }
     }
@@ -460,17 +463,22 @@
 
     async function review(id, action) {
         try {
-            await req("/reservations/" + id + "/" + action + "?adminId=" + me.id, { method: "POST" });
+            await req("/reservations/" + id + "/" + action, { method: "POST" });
             loadPending();
             loadMine();
         } catch (e) { alert(e.message); }
     }
 
-    const saved = localStorage.getItem("me");
-    if (saved) {
-        me = JSON.parse(saved);
+    async function boot() {
+    try {
+        me = await req("/auth/me");
+        localStorage.setItem("me", JSON.stringify(me));
         showApp();
+    } catch (e) {
+        localStorage.removeItem("me");
     }
+}
+
 </script>
 </body>
 </html>

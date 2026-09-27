@@ -5,24 +5,31 @@ import com.labreserve.room.RoomRepository;
 import com.labreserve.user.User;
 import com.labreserve.user.UserRepository;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+
 @Component
 public class DataInitializer implements CommandLineRunner {
 
     private final UserRepository userRepository;
     private final RoomRepository roomRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public DataInitializer(UserRepository userRepository, RoomRepository roomRepository) {
+    public DataInitializer(UserRepository userRepository,
+                           RoomRepository roomRepository,
+                           PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.roomRepository = roomRepository;
+        this.passwordEncoder = passwordEncoder;
     }
+
     @Override
     public void run(String... args) {
         if (!userRepository.existsByStudentNo("admin")) {
             User admin = new User();
             admin.setStudentNo("admin");
             admin.setName("管理员");
-            admin.setPassword("admin123");
+            admin.setPassword(passwordEncoder.encode("admin123"));
             admin.setRole("ADMIN");
             userRepository.save(admin);
         }
@@ -30,7 +37,7 @@ public class DataInitializer implements CommandLineRunner {
             User student = new User();
             student.setStudentNo("2024001");
             student.setName("张三");
-            student.setPassword("123456");
+            student.setPassword(passwordEncoder.encode("123456"));
             student.setRole("STUDENT");
             userRepository.save(student);
         }

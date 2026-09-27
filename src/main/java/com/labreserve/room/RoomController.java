@@ -1,5 +1,7 @@
 package com.labreserve.room;
 
+import com.labreserve.user.CurrentUser;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,17 +27,20 @@ public class RoomController {
     }
 
     @PostMapping
-    public Room create(@RequestBody Room room) {
+    public Room create(@RequestBody Room room, HttpSession session) {
+        CurrentUser.requireAdmin(session);
         return roomService.create(room);
     }
 
     @PutMapping("/{id}")
-    public Room update(@PathVariable Long id, @RequestBody Room room) {
+    public Room update(@PathVariable Long id, @RequestBody Room room, HttpSession session) {
+        CurrentUser.requireAdmin(session);
         return roomService.update(id, room);
     }
 
     @DeleteMapping("/{id}")
-    public void delete(@PathVariable Long id) {
+    public void delete(@PathVariable Long id, HttpSession session) {
+        CurrentUser.requireAdmin(session);
         roomService.delete(id);
     }
 }
